@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>XOX - Vira</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent: #e94560;
+            --accent-secondary: #0f3460;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --x-color: #e94560;
+            --o-color: #00d4ff;
+            --game-bg: #1a1a2e;
+        }
+
+        .light-theme {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #666666;
+            --game-bg: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--x-color), var(--o-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-item.player-x {
+            border: 2px solid var(--x-color);
+        }
+
+        .stat-item.player-o {
+            border: 2px solid var(--o-color);
+        }
+
+        .stat-item.draws {
+            border: 2px solid var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .stat-value.x {
+            color: var(--x-color);
+        }
+
+        .stat-value.o {
+            color: var(--o-color);
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .difficulty-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .difficulty-btn.active {
+            background: linear-gradient(135deg, var(--accent), #ff6b8a);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .game-container {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .turn-indicator {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            border-radius: 15px;
+            background: var(--bg-secondary);
+        }
+
+        .xox-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: min(85vw, 320px);
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--game-bg);
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            font-size: 4rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .cell:hover:not(.taken) {
+            background: var(--accent-secondary);
+        }
+
+        .cell .x {
+            color: var(--x-color);
+            animation: pop 0.3s ease;
+        }
+
+        .cell .o {
+            color: var(--o-color);
+            animation: pop 0.3s ease;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .cell.win-cell {
+            animation: win 1s infinite alternate;
+            background: rgba(0, 212, 106, 0.2);
+            border-color: #00d26a;
+        }
+
+        @keyframes win {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.02);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            justify-content: center;
+        }
+
+        .control-btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--accent), #ff6b8a);
+            color: white;
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .result-overlay.show {
+            display: flex;
+            animation: fade 0.3s;
+        }
+
+        @keyframes fade {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .result-content {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 350px;
+        }
+
+        .result-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .result-content p {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <img src="vira_logo.png" alt="Vira">
+        <h1>❌⭕ XOX</h1>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-item player-x">
+            <span id="label-you">❌ Sen</span>
+            <span class="stat-value x" id="player-wins">0</span>
+        </div>
+        <div class="stat-item draws">
+            <span>🤝</span>
+            <span class="stat-value" id="draws">0</span>
+        </div>
+        <div class="stat-item player-o">
+            <span id="label-bot">⭕ Bot</span>
+            <span class="stat-value o" id="bot-wins">0</span>
+        </div>
+    </div>
+
+    <div class="difficulty-selector">
+        <button class="difficulty-btn active" data-difficulty="easy" id="btn-easy">🟢 Kolay</button>
+        <button class="difficulty-btn" data-difficulty="medium" id="btn-medium">🟡 Orta</button>
+        <button class="difficulty-btn" data-difficulty="hard" id="btn-hard">🔴 Zor</button>
+    </div>
+
+    <div class="game-container">
+        <div class="turn-indicator" id="turn-indicator">
+            Sıra: <span class="player-x">❌ Sende</span>
+        </div>
+        <div class="xox-grid" id="xox-grid">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn" onclick="resetGame()" id="btn-new">🔄 Yeni Oyun</button>
+    </div>
+
+    <div class="result-overlay" id="result-overlay">
+        <div class="result-content">
+            <h2 id="result-title">Tebrikler!</h2>
+            <p id="result-message">Oyunu kazandın!</p>
+            <button class="control-btn" onclick="closeResult()" id="btn-again">🔄 Tekrar Oyna</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            try { tg.expand(); } catch (e) { }
+            if (tg.colorScheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        }
+
+        // --- Localization ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'en';
+
+        const TEXTS = {
+            tr: {
+                you: '❌ Sen', bot: '⭕ Bot',
+                easy: '🟢 Kolay', medium: '🟡 Orta', hard: '🔴 Zor',
+                turnYou: 'Sıra: <span class="player-x">❌ Sende</span>',
+                turnBot: 'Sıra: <span class="player-o">⭕ Bot</span>',
+                win: '🎉 Tebrikler!', winMsg: 'Oyunu kazandın!',
+                lose: '🤖 Bot Kazandı!', loseMsg: 'Bir dahaki sefere...',
+                draw: '🤝 Berabere!', drawMsg: 'Kimse kazanamadı',
+                newGame: '🔄 Yeni Oyun', playAgain: '🔄 Tekrar Oyna'
+            },
+            en: {
+                you: '❌ You', bot: '⭕ Bot',
+                easy: '🟢 Easy', medium: '🟡 Medium', hard: '🔴 Hard',
+                turnYou: 'Turn: <span class="player-x">❌ You</span>',
+                turnBot: 'Turn: <span class="player-o">⭕ Bot</span>',
+                win: '🎉 You Won!', winMsg: 'Victory is yours!',
+                lose: '🤖 Bot Won!', loseMsg: 'Maybe next time...',
+                draw: '🤝 Draw!', drawMsg: 'No winner',
+                newGame: '🔄 New Game', playAgain: '🔄 Play Again'
+            },
+            ru: {
+                you: '❌ Вы', bot: '⭕ Бот',
+                easy: '🟢 Легко', medium: '🟡 Средне', hard: '🔴 Сложно',
+                turnYou: 'Ход: <span class="player-x">❌ Ваш</span>',
+                turnBot: 'Ход: <span class="player-o">⭕ Бот</span>',
+                win: '🎉 Победа!', winMsg: 'Вы выиграли!',
+                lose: '🤖 Бот выиграл', loseMsg: 'Повезет в другой раз',
+                draw: '🤝 Ничья!', drawMsg: 'Победителя нет',
+                newGame: '🔄 Новая', playAgain: '🔄 Еще раз'
+            }
+        };
+
+        const t = TEXTS[lang] || TEXTS['en'];
+
+        document.getElementById('label-you').innerText = t.you;
+        document.getElementById('label-bot').innerText = t.bot;
+        document.getElementById('btn-easy').innerText = t.easy;
+        document.getElementById('btn-medium').innerText = t.medium;
+        document.getElementById('btn-hard').innerText = t.hard;
+        document.getElementById('btn-new').innerText = t.newGame;
+        document.getElementById('btn-again').innerText = t.playAgain;
+
+        async function saveScore(score) {
+            if (!tg) return;
+            try {
+                await fetch('/api/save_score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: tg.initData,
+                        game: 'xox',
+                        score: score
+                    })
+                });
+            } catch (e) { }
+        }
+
+        // --- Game Logic ---
+        let board = Array(9).fill('');
+        let currentPlayer = 'X';
+        let gameOver = false;
+        let difficulty = 'easy';
+        let isThinking = false;
+
+        let playerWins = 0;
+        let botWins = 0;
+        let draws = 0;
+
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                difficulty = btn.dataset.difficulty;
+                resetGame();
+            });
+        });
+
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.addEventListener('click', () => makeMove(parseInt(cell.dataset.index)));
+        });
+
+        function makeMove(index) {
+            if (board[index] !== '' || gameOver || isThinking) return;
+
+            // Player Move
+            board[index] = 'X';
+            renderCell(index, 'X');
+
+            if (checkEndGame('X')) return;
+
+            // Bot Move
+            currentPlayer = 'O';
+            updateTurnIndicator();
+            isThinking = true;
+
+            setTimeout(() => {
+                const botIndex = getBotMove();
+                board[botIndex] = 'O';
+                renderCell(botIndex, 'O');
+                isThinking = false;
+
+                if (checkEndGame('O')) return;
+
+                currentPlayer = 'X';
+                updateTurnIndicator();
+            }, 600);
+        }
+
+        function renderCell(index, player) {
+            const cell = document.querySelector(`.cell[data-index="${index}"]`);
+            cell.innerHTML = `<span class="${player.toLowerCase()}">${player === 'X' ? '❌' : '⭕'}</span>`;
+            cell.classList.add('taken');
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function updateTurnIndicator() {
+            const ind = document.getElementById('turn-indicator');
+            if (currentPlayer === 'X') ind.innerHTML = t.turnYou;
+            else ind.innerHTML = t.turnBot;
+        }
+
+        function checkEndGame(player) {
+            const win = checkWinner();
+            if (win) {
+                gameOver = true;
+                highlightWinCells(win.pattern);
+                if (win.winner === 'X') {
+                    showResult('win');
+                    saveScore(100); // 100 points for win
+                } else {
+                    showResult('lose');
+                }
+                return true;
+            }
+            if (!board.includes('')) {
+                gameOver = true;
+                showResult('draw');
+                saveScore(10); // 10 points for draw
+                return true;
+            }
+            return false;
+        }
+
+        function checkWinner() {
+            for (const p of winPatterns) {
+                if (board[p[0]] && board[p[0]] === board[p[1]] && board[p[0]] === board[p[2]]) {
+                    return { winner: board[p[0]], pattern: p };
+                }
+            }
+            return null;
+        }
+
+        function highlightWinCells(pattern) {
+            pattern.forEach(i => document.querySelector(`.cell[data-index="${i}"]`).classList.add('win-cell'));
+        }
+
+        function showResult(type) {
+            const overlay = document.getElementById('result-overlay');
+            const title = document.getElementById('result-title');
+            const msg = document.getElementById('result-message');
+
+            if (type === 'win') {
+                title.innerText = t.win; title.className = 'win';
+                msg.innerText = t.winMsg; playerWins++;
+                if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } else if (type === 'lose') {
+                title.innerText = t.lose; title.className = 'lose';
+                msg.innerText = t.loseMsg; botWins++;
+                if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+            } else {
+                title.innerText = t.draw; title.className = 'draw';
+                msg.innerText = t.drawMsg; draws++;
+                if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            }
+
+            document.getElementById('player-wins').innerText = playerWins;
+            document.getElementById('bot-wins').innerText = botWins;
+            document.getElementById('draws').innerText = draws;
+
+            setTimeout(() => overlay.classList.add('show'), 500);
+        }
+
+        function closeResult() {
+            document.getElementById('result-overlay').classList.remove('show');
+            resetGame();
+        }
+
+        function resetGame() {
+            board.fill('');
+            currentPlayer = 'X';
+            gameOver = false;
+            isThinking = false;
+            document.querySelectorAll('.cell').forEach(c => {
+                c.innerHTML = '';
+                c.className = 'cell';
+            });
+            updateTurnIndicator();
+        }
+
+        // --- AI ---
+        function getBotMove() {
+            // Easy: Random
+            if (difficulty === 'easy') {
+                const empty = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+                return empty[Math.floor(Math.random() * empty.length)];
+            }
+
+            // Medium: 30% Random, 70% Best
+            if (difficulty === 'medium' && Math.random() < 0.3) {
+                const empty = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+                return empty[Math.floor(Math.random() * empty.length)];
+            }
+
+            // Hard: Minimax
+            let bestScore = -Infinity;
+            let move;
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === '') {
+                    board[i] = 'O';
+                    let score = minimax(board, 0, false);
+                    board[i] = '';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            return move;
+        }
+
+        function minimax(board, depth, isMaximizing) {
+            const result = checkWinner();
+            if (result?.winner === 'O') return 10 - depth;
+            if (result?.winner === 'X') return depth - 10;
+            if (!board.includes('')) return 0;
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'O';
+                        let score = minimax(board, depth + 1, false);
+                        board[i] = '';
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'X';
+                        let score = minimax(board, depth + 1, true);
+                        board[i] = '';
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+    </script>
+</body>
+
+</html>

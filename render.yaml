@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: askvirabot
+    runtime: python
+    buildCommand: apt-get update && apt-get install -y ffmpeg && pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: OPENWEATHERMAP_API_KEY
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: TIMEZONE
+        value: Europe/Istanbul

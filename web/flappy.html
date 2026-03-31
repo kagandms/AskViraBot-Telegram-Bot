@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Flappy Bird - Vira</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-primary: #70c5ce;
+            --bg-secondary: #ded895;
+            --text-primary: #ffffff;
+            --accent: #ff6b6b;
+        }
+
+        .light-theme {
+            --bg-primary: #b0e0e6;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo h1 {
+            font-size: 1.2rem;
+            color: white;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+            margin: 0;
+        }
+
+        .score-board {
+            text-align: right;
+            color: white;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .score-big {
+            font-size: 3rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .center-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        .btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #d35400;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #d35400;
+        }
+
+        .overlay {
+            background: rgba(0, 0, 0, 0.7);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+
+        .overlay.show {
+            display: flex;
+        }
+
+        .overlay h2 {
+            font-size: 2.5rem;
+            color: #ff6b6b;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .stats-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            width: 200px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 4px solid #e67e22;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .start-prompt {
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-10px);
+            }
+        }
+
+        .games-link {
+            margin-top: 15px;
+            color: white;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <div class="ui-layer">
+            <div class="header">
+                <div class="logo">
+                    <img src="vira_logo.png" alt="Vira">
+                    <h1>Flappy</h1>
+                </div>
+                <div class="score-board">
+                    <div class="score-big" id="score">0</div>
+                    <div class="score-label" id="best-label">BEST: <span id="best">0</span></div>
+                </div>
+            </div>
+
+            <div class="center-msg" id="start-msg">
+                <div class="start-prompt">
+                    <img src="https://img.icons8.com/ios-filled/50/ffffff/tap.png" style="width:40px;opacity:0.8;">
+                    <p style="color:white;font-weight:bold;font-size:1.2rem;text-shadow:1px 1px 2px rgba(0,0,0,0.5);">
+                        BAŞLA</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="overlay" id="game-over">
+            <h2>GAME OVER</h2>
+            <div class="stats-box">
+                <div class="stat-row">
+                    <span>Score:</span>
+                    <strong id="final-score">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Best:</span>
+                    <strong id="final-best">0</strong>
+                </div>
+            </div>
+            <button class="btn" onclick="resetGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            try { tg.expand(); } catch (e) { }
+            if (tg.colorScheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        }
+
+        // Language & API
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'en';
+
+        const TEXTS = {
+            tr: {
+                title: 'Flappy',
+                score: 'Skor',
+                best: 'En İyi',
+                tap: 'BAŞLA',
+                gameOver: 'OYUN BİTTİ',
+                playAgain: 'TEKRAR OYNA'
+            },
+            en: {
+                title: 'Flappy',
+                score: 'Score',
+                best: 'Best',
+                tap: 'START',
+                gameOver: 'GAME OVER',
+                playAgain: 'PLAY AGAIN'
+            },
+            ru: {
+                title: 'Flappy',
+                score: 'Счёт',
+                best: 'Рекорд',
+                tap: 'СТАРТ',
+                gameOver: 'ИГРА ОКОНЧЕНА',
+                playAgain: 'ИГРАТЬ СНОВА'
+            }
+        };
+
+        const t = TEXTS[lang] || TEXTS['en'];
+
+        // Apply texts
+        document.querySelector('.logo h1').innerText = t.title;
+        document.querySelector('#best-label').childNodes[0].textContent = t.best + ': ';
+        document.querySelector('#start-msg p').innerText = t.tap;
+        document.querySelector('#game-over h2').innerText = t.gameOver;
+        document.querySelector('#game-over .btn').innerText = t.playAgain;
+
+        async function saveScore(score) {
+            if (!tg) return;
+            try {
+                // Haptic on high score logic can be handled by API response or client side check
+                const response = await fetch('/api/save_score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: tg.initData,
+                        game: 'flappy',
+                        score: score
+                    })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // Game Engine
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let frames = 0;
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('flappy_best') || '0');
+        let state = 'start'; // start, playing, over
+
+        document.getElementById('best').textContent = highScore;
+
+        const bird = {
+            x: 50,
+            y: 150,
+            radius: 15,
+            velocity: 0,
+            gravity: 0.25,
+            jump: -5.5, // slightly stronger jump for responsiveness
+
+            draw: function () {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                const rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (this.velocity * 0.1)));
+                ctx.rotate(rotation);
+
+                // Body
+                ctx.fillStyle = '#ffde59';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#e67e22';
+                ctx.stroke();
+
+                // Eye
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(6, -6, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(8, -6, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Wing
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.ellipse(-5, 5, 8, 5, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Beak
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.moveTo(8, 2);
+                ctx.lineTo(18, 6);
+                ctx.lineTo(8, 10);
+                ctx.fill();
+
+                ctx.restore();
+            },
+
+            update: function () {
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+
+                // Floor
+                if (this.y + this.radius >= height - 40) {
+                    this.y = height - 40 - this.radius;
+                    gameOver();
+                }
+
+                // Ceiling
+                if (this.y - this.radius <= 0) {
+                    this.y = this.radius;
+                    this.velocity = 0;
+                }
+            },
+
+            flap: function () {
+                this.velocity = this.jump;
+            }
+        };
+
+        const pipes = {
+            items: [],
+            w: 60,
+            gap: 160,
+            dx: 3,
+            frameCounter: 0,
+
+            draw: function () {
+                for (let p of this.items) {
+                    // Top pipe
+                    const gradient = ctx.createLinearGradient(p.x, 0, p.x + this.w, 0);
+                    gradient.addColorStop(0, '#75c328');
+                    gradient.addColorStop(0.5, '#b4e64f');
+                    gradient.addColorStop(1, '#75c328');
+                    ctx.fillStyle = gradient;
+
+                    ctx.fillRect(p.x, 0, this.w, p.top);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#528f16';
+                    ctx.strokeRect(p.x, -2, this.w, p.top + 2);
+
+                    // Cap
+                    ctx.fillStyle = '#75c328';
+                    ctx.fillRect(p.x - 4, p.top - 20, this.w + 8, 20);
+                    ctx.strokeRect(p.x - 4, p.top - 20, this.w + 8, 20);
+
+                    // Bottom pipe
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(p.x, height - p.bottom, this.w, p.bottom);
+                    ctx.strokeRect(p.x, height - p.bottom, this.w, p.bottom + 2);
+
+                    // Cap
+                    ctx.fillStyle = '#75c328';
+                    ctx.fillRect(p.x - 4, height - p.bottom, this.w + 8, 20);
+                    ctx.strokeRect(p.x - 4, height - p.bottom, this.w + 8, 20);
+                }
+            },
+
+            update: function () {
+                this.frameCounter++;
+                let currentInterval = Math.floor(300 / this.dx);
+
+                if (this.frameCounter >= currentInterval) {
+                    this.frameCounter = 0;
+                    let minY = 50;
+                    let maxY = height - 50 - this.gap - 40; // 40 for ground
+                    let top = Math.random() * (maxY - minY) + minY;
+
+                    this.items.push({
+                        x: width,
+                        top: top,
+                        bottom: height - top - this.gap,
+                        passed: false
+                    });
+                    
+                    // Progressive difficulty
+                    if (this.dx < 7) this.dx += 0.05;
+                    if (this.gap > 110) this.gap -= 0.5;
+                }
+
+                for (let i = 0; i < this.items.length; i++) {
+                    let p = this.items[i];
+                    p.x -= this.dx;
+
+                    // Collision
+                    if (
+                        bird.x + bird.radius > p.x &&
+                        bird.x - bird.radius < p.x + this.w &&
+                        (bird.y - bird.radius < p.top || bird.y + bird.radius > height - p.bottom)
+                    ) {
+                        gameOver();
+                    }
+
+                    // Score
+                    if (p.x + this.w < bird.x && !p.passed) {
+                        score++;
+                        document.getElementById('score').textContent = score;
+                        p.passed = true;
+                        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    }
+
+                    if (p.x + this.w < 0) {
+                        this.items.shift();
+                        i--;
+                    }
+                }
+            },
+
+            reset: function () {
+                this.items = [];
+                this.dx = 3;
+                this.gap = 160;
+                this.frameCounter = 0;
+            }
+        };
+
+        function draw() {
+            // Sky
+            ctx.fillStyle = document.body.classList.contains('light-theme') ? '#b0e0e6' : '#70c5ce';
+            ctx.fillRect(0, 0, width, height);
+
+            // Clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            for (let i = 0; i < 3; i++) {
+                let x = ((frames * 0.5) + (i * 200)) % (width + 100) - 50;
+                let y = 50 + i * 30;
+                ctx.beginPath();
+                ctx.arc(x, y, 30, 0, Math.PI * 2);
+                ctx.arc(x + 25, y - 10, 35, 0, Math.PI * 2);
+                ctx.arc(x + 50, y, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            pipes.draw();
+
+            // Ground
+            ctx.fillStyle = '#ded895';
+            ctx.fillRect(0, height - 40, width, 40);
+            ctx.fillStyle = '#73bf2e';
+            ctx.fillRect(0, height - 40, width, 10);
+
+            bird.draw();
+        }
+
+        function update() {
+            if (state === 'playing') {
+                bird.update();
+                pipes.update();
+            } else if (state === 'start') {
+                bird.y = height / 2 + Math.sin(frames * 0.1) * 10;
+                bird.x = width / 3; // position for start
+            }
+
+            draw();
+            frames++;
+            requestAnimationFrame(update);
+        }
+
+        function gameOver() {
+            state = 'over';
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('flappy_best', highScore);
+            }
+
+            saveScore(score);
+
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-best').textContent = highScore;
+            document.getElementById('game-over').classList.add('show');
+            document.getElementById('start-msg').style.display = 'none';
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        }
+
+        function resetGame() {
+            state = 'start';
+            score = 0;
+            frames = 0;
+            bird.velocity = 0;
+            pipes.reset();
+            document.getElementById('score').textContent = '0';
+            document.getElementById('game-over').classList.remove('show');
+            document.getElementById('start-msg').style.display = 'block';
+            document.getElementById('best').textContent = highScore;
+        }
+
+        // Inputs
+        function input() {
+            if (state === 'start') {
+                state = 'playing';
+                document.getElementById('start-msg').style.display = 'none';
+            }
+            if (state === 'playing') {
+                bird.flap();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                input();
+            }
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // prevent zoom/scroll
+            input();
+        }, { passive: false });
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.tagName !== 'BUTTON') input();
+        });
+
+        // Init
+        update();
+
+    </script>
+</body>
+
+</html>

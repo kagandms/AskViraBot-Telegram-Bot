@@ -1,0 +1,272 @@
+{
+  "messages": {
+    "edit_notes_menu_prompt": "✏️ Düzenlemek istediğiniz notu seçin:",
+    "prompt_select_note_to_edit": "✏️ Lütfen içeriğini değiştirmek istediğiniz notu seçin:",
+    "prompt_new_content_for_note": "📝 Seçilen not için YENİ içeriği yazın:",
+    "note_updated": "✅ Not başarıyla güncellendi.",
+    "games_menu_prompt": "🎮 Oyun Odasına Hoş Geldiniz! Bir oyun seçin:",
+    "tools_menu_prompt": "🛠 Araçlar Menüsüne Hoş Geldiniz! Bir araç seçin:",
+    "start": "👋 Merhaba! Ben {bot_name}. Seni tekrar görmek güzel.\n\n⚠️ <b>Bu bot şu anda BETA aşamasındadır.</b>\nGeri bildirimleriniz bizim için çok değerli! Herhangi bir hata veya öneri için lütfen geliştiriciye ulaşın.\n\n/menu yazarak komutlara ulaşabilirsin.",
+    "menu_prompt": "🏠 Ana Menüdesiniz. Ne yapmak istersiniz? 👇",
+    "language_set": "Dil Türkçe olarak ayarlandı.",
+    "no_notes": "📂 Henüz kayıtlı notunuz yok.",
+    "notes_header": "📝 Kayıtlı Notlarınız:\n",
+    "notes_menu_prompt": "Notlar menüsünden bir işlem seçin:",
+    "delete_notes_menu_prompt": "Silmek için bir seçenek belirleyin:",
+    "prompt_select_note_to_delete": "Lütfen silmek istediğiniz notu seçin:",
+    "invalid_note_number": "Geçersiz not numarası.",
+    "unknown_command": "❓ Üzgünüm, bu komutu anlayamadım. Lütfen /menu yazarak komutları görüntüleyin.",
+    "prompt_new_note": "✏️ Lütfen notunuzu yazın:",
+    "addnote_no_content": "Lütfen not almak için /addnote komutundan sonra notunu yaz.",
+    "note_saved": "✅ Notunuz kaydedildi: ",
+    "note_deleted": "🗑️ not silindi",
+    "dice_rolled": "🎲 Zar attın: {number}",
+    "coinflip_result": "🪙 {result} geldi!",
+    "remind_usage": "ℹ️ Lütfen bir saat ve mesaj girin. Örn: <code>/remind 14:30 toplantı</code> veya <code>10:00 2025-12-31 yeni yıl</code>",
+    "remind_prompt_input": "✏️ Lütfen hatırlatıcı için saati ve mesajı girin. Örn: <b>14:30 toplantı</b> veya <b>10:00 2025-12-31 yeni yıl</b>",
+    "reminder_set": "⏰ Hatırlatıcı ayarlandı: {time_str} - {message}\nKalan süre: {remaining_time}",
+    "error_occurred": "❌ Hata oluştu: ",
+    "qrcode_generated": "✅ QR kod oluşturuldu.\n{data}",
+    "qrcode_prompt_input": "Lütfen QR koda dönüştürmek istediğiniz metni, bağlantıyı veya veriyi yazın:",
+    "tkm_welcome": "Taş-Kağıt-Makas oyununa hoşgeldin! Aşağıdaki butonlardan birini seç:",
+    "tkm_tie": "Berabere kaldık!",
+    "tkm_win": "Tebrikler, kazandın! 🎉",
+    "tkm_lose": "Üzgünüm, kaybettin! 😞",
+    "tkm_labels_you": "Sen",
+    "tkm_labels_bot": "Ben",
+    "tkm_invalid_input": "Lütfen sadece butonları kullan: Taş, Kağıt veya Makas.",
+    "next_page": "Sonraki Sayfa",
+    "previous_page": "Önceki Sayfa",
+    "note_button_prefix": "Not ",
+    "back_button_inline": "🔙 Geri",
+    "pdf_converter_menu_prompt": "📄 PDF dönüştürme seçenekleri:",
+    "prompt_text_for_pdf": "✏️ Lütfen PDF'e dönüştürmek istediğiniz metni yazın:",
+    "prompt_file_for_pdf": "📂 Lütfen PDF'e dönüştürmek istediğiniz dosyayı (resim, DOCX, TXT) gönderin:",
+    "pdf_conversion_success": "✅ Dosya başarıyla PDF'e dönüştürüldü.",
+    "pdf_conversion_error": "PDF dönüştürülürken bir hata oluştu: {error}",
+    "unsupported_file_type": "Üzgünüm, bu dosya türünü PDF'e dönüştüremem. Lütfen bir resim (JPG, PNG), DOCX veya TXT dosyası gönderin.",
+    "waiting_for_input": "⏳ Lütfen girişinizi bekliyorum...",
+    "docx_conversion_warning": "⚠️ DOCX'ten PDF'e dönüştürme için sunucuda Microsoft Word veya LibreOffice kurulu olması gerekebilir. Kurulum yoksa bu işlem başarısız olabilir.",
+    "weather_prompt_city": "🏙️ Hava durumunu öğrenmek istediğiniz şehrin adını girin:",
+    "weather_current": "📍 {city}\n🌡️ Sıcaklık: {temp}°C\n❔ Hissedilen: {feels_like}°C\n✨ Durum: {description}\n💧 Nem: %{humidity}\n💨 Rüzgar: {wind_speed} m/s",
+    "weather_city_not_found": "❌ Üzgünüm, '{city}' şehri için hava durumu bilgisi bulunamadı. Lütfen şehir adını doğru yazdığınızdan emin olun.",
+    "weather_api_error": "❌ Hava durumu bilgisi alınırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
+    "weather_select_city": "🏙️ Hava durumunu öğrenmek istediğiniz şehri seçin:",
+    "weather_forecast_button": "📅 5 Günlük Tahmin",
+    "weather_forecast_title": "📅 <b>{city} - 5 Günlük Tahmin</b>",
+    "weather_day_format": "<b>{day}:</b> {icon} {max_temp}°C / {min_temp}°C ({desc})",
+    "weather_back_to_current": "🔄 Şu Anki Durum",
+    "developer_info_prompt": "👨‍💻 Sosyal medya hesaplarıma aşağıdaki bağlantılardan ulaşabilirsiniz:",
+    "reminder_menu_prompt": "Hatırlatıcılar menüsünden bir işlem seçin:",
+    "no_reminders": "📂 Henüz kayıtlı hatırlatıcınız yok.",
+    "reminders_header": "⏰ Kayıtlı Hatırlatıcılarınız:\n",
+    "prompt_select_reminder_to_delete": "🗑️ Lütfen silmek istediğiniz hatırlatıcıyı seçin:",
+    "reminder_deleted": "🗑️ hatırlatıcı silindi.",
+    "invalid_reminder_number": "❌ Geçersiz hatırlatıcı numarası.",
+    "remaining_time_format": "{days} gün, {hours} saat, {minutes} dakika, {seconds} saniye",
+    "remaining_time_format_short": "{hours}s {minutes}dk {seconds}sn",
+    "my_website": "🌐 Web Sitem",
+    "xox_welcome": "XOX (Tic-Tac-Toe) oyununa hoş geldin! Hamle yapmak için bir kutuya tıkla.",
+    "xox_turn_user": "Sıra sende (X) 👇",
+    "xox_turn_bot": "Sıra bende (O)...",
+    "xox_win": "🎉 Tebrikler! Sen kazandın!",
+    "xox_lose": "🤖 Ben kazandım! Bir dahaki sefere...",
+    "xox_draw": "🤝 Berabere!",
+    "xox_invalid_move": "Bu kutu dolu veya oyun bitti.",
+    "xox_bot_moved": "🤖 Bot hamle yaptı! Sıra sende.",
+    "video_downloader_menu_prompt": "📥 Video İndirici\n\nHangi platformdan indirmek istiyorsunuz?",
+    "video_downloader_prompt_link": "🔗 Lütfen {platform} video linkini gönderin:",
+    "video_downloading": "⏳ Video indiriliyor, lütfen bekleyin...",
+    "video_download_success": "✅ Video başarıyla indirildi!",
+    "video_download_error": "❌ Video indirilemedi. Link geçersiz olabilir veya içerik private olabilir.\nHata: {error}",
+    "video_file_too_large": "⚠️ Video dosyası çok büyük (50MB üzeri). Telegram limiti aşıyor.",
+    "video_invalid_link": "⚠️ Geçersiz link. Lütfen geçerli bir {platform} linki gönderin.",
+    "format_selection_prompt": "🎥 Hangi formatı indirmek istiyorsunuz?",
+    "audio_downloading": "⏳ Ses dosyası indiriliyor, lütfen bekleyin...",
+    "audio_download_success": "✅ Ses dosyası başarıyla indirildi!",
+    "ai_menu_prompt": "🤖 <b>AI Asistan</b>\n\nYapay zeka destekli sohbet asistanınız.\nSorularınızı sorun, yardım isteyin!\n\n📊 Günlük hakkınız: {remaining}/{limit}",
+    "ai_menu_prompt_admin": "🤖 <b>AI Asistan (Admin)</b>\n\nYapay zeka destekli sohbet asistanınız.\n\n⚡️ <b>Durum: ♾️ Sınırsız Mod</b>",
+    "ai_chat_started": "🧠 AI sohbet modu başladı!\n\nBana her şeyi sorabilirsin. Bitirmek için aşağıdaki butonu kullan.",
+    "ai_chat_ended": "👋 AI sohbeti sonlandırıldı. Ana menüye döndünüz.",
+    "ai_thinking": "🤔 Düşünüyorum...",
+    "ai_limit_reached": "⚠️ Günlük AI mesaj limitinize ulaştınız (30/30).\nYarın tekrar deneyebilirsiniz!",
+    "ai_remaining_footer": "💬 Hak: {status}",
+    "ai_unlimited_text": "♾️ Sınırsız",
+    "ai_error": "❌ AI yanıt verirken bir hata oluştu. Lütfen tekrar deneyin.",
+    "ai_api_error": "❌ AI servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+    "shazam_menu_prompt": "🎵 <b>Shazam - Müzik Bulucu</b>\n\nBulmak istediğiniz şarkı için:\n🎤 <b>Ses/Müzik</b> dosyasını gönderin,\n🎥 <b>Video</b> dosyasını gönderin,\n🔗 <b>Instagram/TikTok/Twitter</b> linkini yapıştırın.",
+    "shazam_processing": "🎧 Müzik dinleniyor... Lütfen bekleyin.",
+    "shazam_not_found": "❌ Müzik tanımlanamadı. Kayıt çok kısa veya kalitesiz olabilir.",
+    "shazam_result_caption": "🎵 <b>{title}</b>\n👤 {artist}\n💿 {album}",
+    "daily_bonus_already_claimed": "⏳ Günlük bonusunu bugün zaten aldın. Yarın tekrar gel!",
+    "daily_bonus_success": "🎉 <b>Günlük Bonus Alındı!</b>\n\n💰 Kazanılan: <b>{reward} Coin</b>\n🔥 Seri: <b>{streak}. Gün</b>\n\nYarın daha fazla kazanmak için gelmeyi unutma!",
+    "wallet_status": "💳 <b>Cüzdan Durumu</b>\n\n💰 Bakiye: <b>{coins} Coin</b>",
+    "insufficient_funds": "❌ Yetersiz bakiye! Bu işlem için {amount} coin gerekiyor.\nMevcut: {balance}",
+    "bet_placed": "✅ Bahis kabul edildi: <b>{amount} Coin</b>",
+    "coin_earned": "💰 <b>{amount} Coin</b> kazandın!",
+    "game_fee": "🎫 Giriş ücreti: <b>{amount} Coin</b>",
+    "game_mode_select": "🎮 <b>{game_name}</b>\n\nNasıl oynamak istersin?",
+    "bet_select_prompt": "💰 <b>Bahis Miktarı</b>\n\n💳 Mevcut Bakiye: <b>{balance} Coin</b>\n\nKaç coin ile oynamak istiyorsun?",
+    "game_win_coins": "🎉 Kazandın! <b>+{amount} Coin</b> (x{multiplier})",
+    "game_lose_coins": "😔 Kaybettin! <b>-{amount} Coin</b>",
+    "game_draw_refund": "🤝 Berabere! Bahsin iade edildi: <b>{amount} Coin</b>",
+    "metro_menu_prompt": "🚇 <b>Metro İstanbul</b>\n\n🚆 Hangi hatta seyahat edeceksiniz?\n\n<i>ℹ️ Veriler İBB'den alınmaktadır.</i>",
+    "metro_select_station": "🚇 <b>{line}</b>\n\n📍 Hangi istasyonu kullanacaksınız?",
+    "metro_select_direction": "➡️ Gideceğiniz yönü seçin:",
+    "metro_departures_header": "🚇 <b>{line} - {station}</b>\n📍 {direction} Yönü\n\n<i>Yaklaşan seferler:</i>",
+    "metro_no_departures": "⚠️ Bu yön için yaklaşan sefer bulunamadı.",
+    "metro_api_error": "❌ Metro verisi alınamadı. Lütfen tekrar deneyin.",
+    "invalid_selection": "⚠️ Geçersiz seçim. Lütfen menüden bir seçenek belirleyin."
+  },
+  "buttons": {
+    "MAIN_BUTTONS": [
+      [
+        "🛠 Araçlar",
+        "🎮 Oyun Odası"
+      ],
+      [
+        "🌐 Dil Değiştir",
+        "👨‍💻 Geliştirici"
+      ],
+      [
+        "🤖 AI Asistan (Beta)",
+        "❓ Nasıl Kullanılır?"
+      ]
+    ],
+    "TOOLS_BUTTONS": [
+      [
+        "📝 Notlar",
+        "⏰ Hatırlatıcı"
+      ],
+      [
+        "📷 QR Kod",
+        "📄 PDF Dönüştürücü"
+      ],
+      [
+        "☀️ Hava Durumu",
+        "🚇 Canlı Metro İstanbul"
+      ],
+      [
+        "📥 Video İndir",
+        "🎵 Shazam"
+      ],
+      [
+        "🔙 Ana Menü"
+      ]
+    ],
+    "VIDEO_DOWNLOADER_BUTTONS": [
+      [
+        "📱 TikTok",
+        "🐦 Twitter/X"
+      ],
+      [
+        "📸 Instagram"
+      ],
+      [
+        "🔙 Araçlar Menüsü"
+      ]
+    ],
+    "FORMAT_SELECTION_BUTTONS": [
+      [
+        "🎥 Video (MP4)",
+        "🎵 Ses (MP3)"
+      ],
+      [
+        "🔙 Platform Seçimi"
+      ]
+    ],
+    "GAMES_BUTTONS": [
+      [
+        "❌⭕ XOX",
+        "🎲 Zar"
+      ],
+      [
+        "🪙 Yazı Tura",
+        "🪨📄✂️ T-K-M"
+      ],
+      [
+        "🧩 Sudoku",
+        "🐍 Snake"
+      ],
+      [
+        "🔢 2048",
+        "🐦 Flappy Bird"
+      ],
+      [
+        "🏃 Runner",
+        "📊 İstatistiklerim"
+      ],
+      [
+        "🔙 Ana Menü"
+      ]
+    ],
+    "NOTES_BUTTONS": [
+      [
+        "➕ Not Ekle",
+        "✏️ Not Düzenle"
+      ],
+      [
+        "📋 Tüm Notları Göster",
+        "🗑️ Not Sil"
+      ],
+      [
+        "🔙 Araçlar Menüsü"
+      ]
+    ],
+    "DELETE_NOTES_BUTTONS": [
+      [
+        "✍️ Not Seçerek Sil"
+      ],
+      [
+        "🔙 Notlar Menüsü"
+      ]
+    ],
+    "TKM_BUTTONS": [
+      [
+        "🪨 Taş"
+      ],
+      [
+        "📄 Kağıt"
+      ],
+      [
+        "✂️ Makas"
+      ],
+      [
+        "🔙 Oyun Odası"
+      ]
+    ],
+    "PDF_CONVERTER_BUTTONS": [
+      [
+        "📝 Metinden PDF'e"
+      ],
+      [
+        "🖼️ Resimden PDF'e"
+      ],
+      [
+        "📄 Belgeden PDF'e"
+      ],
+      [
+        "🔙 Araçlar Menüsü"
+      ]
+    ],
+    "INPUT_BACK_BUTTONS": [
+      [
+        "🔙 Araçlar Menüsü"
+      ]
+    ],
+    "REMINDER_BUTTONS": [
+      [
+        "➕ Hatırlatıcı Ekle"
+      ],
+      [
+        "📋 Hatırlatıcıları Göster"
+      ],
+      [
+        "🗑️ Hatırlatıcı Sil"
+      ],
+      [
+        "🔙 Araçlar Menüsü"
+      ]
+    ]
+  }
+}

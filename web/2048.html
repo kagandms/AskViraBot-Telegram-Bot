@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>2048 - Vira</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent: #e94560;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --grid-bg: #1a1a2e;
+            --cell-empty: #2a2a4e;
+        }
+
+        .light-theme {
+            --bg-primary: #faf8ef;
+            --bg-secondary: #bbada0;
+            --bg-card: #ffffff;
+            --text-primary: #776e65;
+            --grid-bg: #bbada0;
+            --cell-empty: #cdc1b4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #edc22e, #f9a825);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            background: var(--bg-card);
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #edc22e;
+        }
+
+        .game-container {
+            background: var(--grid-bg);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: min(85vw, 340px);
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.8rem;
+            transition: all 0.1s;
+            background: var(--cell-empty);
+        }
+
+        .cell[data-value="2"] {
+            background: #eee4da;
+            color: #776e65;
+        }
+
+        .cell[data-value="4"] {
+            background: #ede0c8;
+            color: #776e65;
+        }
+
+        .cell[data-value="8"] {
+            background: #f2b179;
+            color: #f9f6f2;
+        }
+
+        .cell[data-value="16"] {
+            background: #f59563;
+            color: #f9f6f2;
+        }
+
+        .cell[data-value="32"] {
+            background: #f67c5f;
+            color: #f9f6f2;
+        }
+
+        .cell[data-value="64"] {
+            background: #f65e3b;
+            color: #f9f6f2;
+        }
+
+        .cell[data-value="128"] {
+            background: #edcf72;
+            color: #f9f6f2;
+            font-size: 1.5rem;
+        }
+
+        .cell[data-value="256"] {
+            background: #edcc61;
+            color: #f9f6f2;
+            font-size: 1.5rem;
+        }
+
+        .cell[data-value="512"] {
+            background: #edc850;
+            color: #f9f6f2;
+            font-size: 1.5rem;
+        }
+
+        .cell[data-value="1024"] {
+            background: #edc53f;
+            color: #f9f6f2;
+            font-size: 1.2rem;
+        }
+
+        .cell[data-value="2048"] {
+            background: #edc22e;
+            color: #f9f6f2;
+            font-size: 1.2rem;
+        }
+
+        .cell.new {
+            animation: popIn 0.2s ease;
+        }
+
+        .cell.merged {
+            animation: pulse 0.2s ease;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .ctrl-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--accent), #ff6b8a);
+            color: white;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .overlay.show {
+            display: flex;
+        }
+
+        .overlay-content {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .overlay-content h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .overlay-content h2.win {
+            color: #edc22e;
+        }
+
+        .overlay-content h2.lose {
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <img src="vira_logo.png" alt="Vira">
+        <h1>2048</h1>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-label">Skor</div>
+            <div class="stat-value" id="score">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">En Yüksek</div>
+            <div class="stat-value" id="best">0</div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="controls">
+        <button class="ctrl-btn" onclick="resetGame()">🔄 Yeni Oyun</button>
+    </div>
+
+    <div class="instructions">
+        Kaydır veya ok tuşlarını kullan<br>
+        Aynı sayıları birleştir → 2048'e ulaş!
+    </div>
+
+    <div class="overlay" id="win-overlay">
+        <div class="overlay-content">
+            <h2 class="win">🎉 2048!</h2>
+            <p>Tebrikler, kazandın!</p>
+            <button class="ctrl-btn" onclick="continueGame()">▶️ Devam Et</button>
+            <button class="ctrl-btn" onclick="resetGame()" style="margin-left:10px;background:#666;">🔄 Yeni</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="lose-overlay">
+        <div class="overlay-content">
+            <h2 class="lose">Oyun Bitti!</h2>
+            <p>Hareket kalmadı</p>
+            <div class="stat-value" id="final-score" style="margin:15px 0;">0</div>
+            <button class="ctrl-btn" onclick="resetGame()">🔄 Tekrar Oyna</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            try {
+                tg.expand();
+            } catch (e) { }
+
+            if (tg.colorScheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        }
+
+        // --- LANGUAGE & API SETUP ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'en';
+
+        const TEXTS = {
+            tr: {
+                title: '2048',
+                score: 'Skor',
+                best: 'En Yüksek',
+                newGame: '🔄 Yeni Oyun',
+                instructions: 'Kaydır veya ok tuşlarını kullan<br>Aynı sayıları birleştir → 2048\'e ulaş!',
+                won: '🎉 2048!',
+                wonDesc: 'Tebrikler, kazandın!',
+                continue: '▶️ Devam Et',
+                gameOver: 'Oyun Bitti!',
+                loseDesc: 'Hareket kalmadı',
+                playAgain: '🔄 Tekrar Oyna'
+            },
+            en: {
+                title: '2048',
+                score: 'Score',
+                best: 'Best',
+                newGame: '🔄 New Game',
+                instructions: 'Use swipe or arrow keys<br>Merge same numbers → Reach 2048!',
+                won: '🎉 2048!',
+                wonDesc: 'Congrats, you won!',
+                continue: '▶️ Continue',
+                gameOver: 'Game Over!',
+                loseDesc: 'No moves left',
+                playAgain: '🔄 Play Again'
+            },
+            ru: {
+                title: '2048',
+                score: 'Счёт',
+                best: 'Рекорд',
+                newGame: '🔄 Новая',
+                instructions: 'Свайп или стрелки<br>Соединяй числа → Собери 2048!',
+                won: '🎉 2048!',
+                wonDesc: 'Поздравляем, победа!',
+                continue: '▶️ Продолжить',
+                gameOver: 'Игра Окончена!',
+                loseDesc: 'Нет ходов',
+                playAgain: '🔄 Играть снова'
+            }
+        };
+
+        const t = TEXTS[lang] || TEXTS['en'];
+
+        // Apply translations
+        document.querySelector('.header h1').innerText = t.title;
+        document.querySelectorAll('.stat-item .stat-label')[0].innerText = t.score;
+        document.querySelectorAll('.stat-item .stat-label')[1].innerText = t.best;
+        document.querySelector('.controls button').innerText = t.newGame;
+        document.querySelector('.instructions').innerHTML = t.instructions;
+
+        document.querySelector('#win-overlay h2').innerText = t.won;
+        document.querySelector('#win-overlay p').innerText = t.wonDesc;
+        document.querySelectorAll('#win-overlay button')[0].innerText = t.continue;
+        document.querySelectorAll('#win-overlay button')[1].innerText = t.newGame;
+
+        document.querySelector('#lose-overlay h2').innerText = t.gameOver;
+        document.querySelector('#lose-overlay p').innerText = t.loseDesc;
+        document.querySelector('#lose-overlay button').innerText = t.playAgain;
+
+        // API Handler
+        async function saveScore(score) {
+            if (!tg) return;
+            try {
+                const response = await fetch('/api/save_score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: tg.initData,
+                        game: '2048',
+                        score: score
+                    })
+                });
+                const data = await response.json();
+                if (data.new_high_score) {
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }
+            } catch (e) {
+                console.error("Save score error:", e);
+            }
+        }
+
+        let grid = [];
+        let score = 0;
+        let best = parseInt(localStorage.getItem('2048_best') || '0');
+        let won = false;
+        let moved = false;
+
+        document.getElementById('best').textContent = best;
+
+        function init() {
+            grid = Array(16).fill(0);
+            score = 0;
+            won = false;
+            document.getElementById('score').textContent = score;
+            addRandomTile();
+            addRandomTile();
+            render();
+        }
+
+        function addRandomTile() {
+            const empty = [];
+            grid.forEach((val, i) => { if (val === 0) empty.push(i); });
+            if (empty.length === 0) return;
+
+            const idx = empty[Math.floor(Math.random() * empty.length)];
+            grid[idx] = Math.random() < 0.9 ? 2 : 4;
+
+            setTimeout(() => {
+                const cells = document.querySelectorAll('.cell');
+                cells[idx]?.classList.add('new');
+            }, 10);
+        }
+
+        function render() {
+            const container = document.getElementById('grid');
+            container.innerHTML = '';
+
+            grid.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                if (val > 0) {
+                    cell.textContent = val;
+                    cell.dataset.value = val;
+                }
+                container.appendChild(cell);
+            });
+        }
+
+        function slide(row) {
+            let arr = row.filter(x => x !== 0);
+            for (let i = 0; i < arr.length - 1; i++) {
+                if (arr[i] === arr[i + 1]) {
+                    arr[i] *= 2;
+                    score += arr[i];
+                    arr[i + 1] = 0;
+                    if (arr[i] === 2048 && !won) {
+                        won = true;
+                        setTimeout(showWin, 300);
+                    }
+                }
+            }
+            arr = arr.filter(x => x !== 0);
+            while (arr.length < 4) arr.push(0);
+            return arr;
+        }
+
+        function move(direction) {
+            let oldGrid = [...grid];
+
+            if (direction === 'left') {
+                for (let i = 0; i < 4; i++) {
+                    let row = grid.slice(i * 4, i * 4 + 4);
+                    row = slide(row);
+                    for (let j = 0; j < 4; j++) grid[i * 4 + j] = row[j];
+                }
+            } else if (direction === 'right') {
+                for (let i = 0; i < 4; i++) {
+                    let row = grid.slice(i * 4, i * 4 + 4).reverse();
+                    row = slide(row).reverse();
+                    for (let j = 0; j < 4; j++) grid[i * 4 + j] = row[j];
+                }
+            } else if (direction === 'up') {
+                for (let j = 0; j < 4; j++) {
+                    let col = [grid[j], grid[j + 4], grid[j + 8], grid[j + 12]];
+                    col = slide(col);
+                    grid[j] = col[0]; grid[j + 4] = col[1]; grid[j + 8] = col[2]; grid[j + 12] = col[3];
+                }
+            } else if (direction === 'down') {
+                for (let j = 0; j < 4; j++) {
+                    let col = [grid[j + 12], grid[j + 8], grid[j + 4], grid[j]];
+                    col = slide(col);
+                    grid[j + 12] = col[0]; grid[j + 8] = col[1]; grid[j + 4] = col[2]; grid[j] = col[3];
+                }
+            }
+
+            moved = !grid.every((val, i) => val === oldGrid[i]);
+
+            if (moved) {
+                document.getElementById('score').textContent = score;
+                if (score > best) {
+                    best = score;
+                    localStorage.setItem('2048_best', best);
+                    document.getElementById('best').textContent = best;
+                }
+
+                if (score > 100 && score % 100 === 0) saveScore(score);
+
+                addRandomTile();
+                render();
+
+                if (tg?.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+
+                if (!canMove()) {
+                    setTimeout(showLose, 300);
+                }
+            }
+        }
+
+        function canMove() {
+            if (grid.includes(0)) return true;
+
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const idx = i * 4 + j;
+                    if (j < 3 && grid[idx] === grid[idx + 1]) return true;
+                    if (i < 3 && grid[idx] === grid[idx + 4]) return true;
+                }
+            }
+            return false;
+        }
+
+        function showWin() {
+            document.getElementById('win-overlay').classList.add('show');
+            saveScore(score);
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        function showLose() {
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('lose-overlay').classList.add('show');
+            saveScore(score);
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('error');
+            }
+        }
+
+        function continueGame() {
+            document.getElementById('win-overlay').classList.remove('show');
+        }
+
+        function resetGame() {
+            document.getElementById('win-overlay').classList.remove('show');
+            document.getElementById('lose-overlay').classList.remove('show');
+            init();
+        }
+
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            const keys = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+            if (keys[e.key]) {
+                e.preventDefault();
+                move(keys[e.key]);
+            }
+        });
+
+        // Swipe
+        let touchStartX = 0, touchStartY = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+        document.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            const threshold = 30;
+
+            if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    move(dx > 0 ? 'right' : 'left');
+                } else {
+                    move(dy > 0 ? 'down' : 'up');
+                }
+            }
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

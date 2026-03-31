@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Runner - Vira</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-primary: #101113;
+            --bg-secondary: #343a40;
+            --text-primary: #ffffff;
+            --accent: #fa5252;
+        }
+
+        .light-theme {
+            --bg-primary: #f8f9fa;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .logo h1 {
+            font-size: 1.2rem;
+            color: #ccc;
+            margin: 0;
+        }
+
+        .score-board {
+            text-align: right;
+            color: white;
+        }
+
+        .score-big {
+            font-size: 3rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .center-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .overlay {
+            background: rgba(0, 0, 0, 0.85);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .overlay.show {
+            display: flex;
+        }
+
+        .overlay h2 {
+            font-size: 2.5rem;
+            color: #fa5252;
+            margin-bottom: 20px;
+        }
+
+        .stats-box {
+            background: #212529;
+            padding: 20px;
+            border-radius: 10px;
+            width: 200px;
+            margin-bottom: 30px;
+            border: 2px solid #fa5252;
+            color: white;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .btn {
+            background: #fa5252;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(250, 82, 82, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <div class="ui-layer">
+            <div class="header">
+                <div class="logo">
+                    <img src="vira_logo.png" alt="Vira">
+                    <h1>Runner</h1>
+                </div>
+                <div class="score-board">
+                    <div class="score-big" id="score">0</div>
+                    <div class="score-label" id="best-label">BEST: <span id="best">0</span></div>
+                </div>
+            </div>
+
+            <div class="center-msg" id="start-screen">
+                <h2 style="color:white;font-size:2rem;margin-bottom:10px;">RUNNER</h2>
+                <p class="blink" style="color:#aaa;font-size:1.2rem;">TAP TO START</p>
+            </div>
+        </div>
+
+        <div class="overlay" id="game-over">
+            <h2>GAME OVER</h2>
+            <div class="stats-box">
+                <div class="stat-row">
+                    <span>Score:</span>
+                    <strong id="final-score">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Best:</span>
+                    <strong id="final-best">0</strong>
+                </div>
+            </div>
+            <button class="btn" onclick="resetGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            try { tg.expand(); } catch (e) { }
+            if (tg.colorScheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        }
+
+        // Language
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'en';
+
+        const TEXTS = {
+            tr: {
+                title: 'Runner',
+                best: 'EN İYİ',
+                start: 'BAŞLAMAK İÇİN DOKUN',
+                gameOver: 'OYUN BİTTİ',
+                playAgain: 'TEKRAR OYNA'
+            },
+            en: {
+                title: 'Runner',
+                best: 'BEST',
+                start: 'TAP TO START',
+                gameOver: 'GAME OVER',
+                playAgain: 'PLAY AGAIN'
+            },
+            ru: {
+                title: 'Runner',
+                best: 'РЕКОРД',
+                start: 'НАЖМИ ДЛЯ СТАРТА',
+                gameOver: 'ИГРА ОКОНЧЕНА',
+                playAgain: 'ИГРАТЬ СНОВА'
+            }
+        };
+
+        const t = TEXTS[lang] || TEXTS['en'];
+
+        document.querySelector('.logo h1').innerText = t.title;
+        document.querySelector('#best-label').childNodes[0].textContent = t.best + ': ';
+        document.querySelector('#start-screen p').innerText = t.start;
+        document.querySelector('#game-over h2').innerText = t.gameOver;
+        document.querySelector('#game-over .btn').innerText = t.playAgain;
+
+        async function saveScore(score) {
+            if (!tg) return;
+            try {
+                await fetch('/api/save_score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: tg.initData,
+                        game: 'runner',
+                        score: score
+                    })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Game Vars
+        let frames = 0;
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('runner_best') || '0');
+        let gameSpeed = 8;
+        let gameState = 'start'; // start, playing, over
+        let gameLoop;
+
+        document.getElementById('best').textContent = highScore;
+
+        const player = {
+            x: 50,
+            y: 0,
+            w: 40,
+            h: 40,
+            dy: 0,
+            jumpForce: 13,
+            grounded: false,
+            doubleJump: true,
+
+            draw: function () {
+                ctx.fillStyle = '#fa5252';
+                ctx.shadowColor = 'rgba(250, 82, 82, 0.5)';
+                ctx.shadowBlur = 15;
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.shadowBlur = 0;
+
+                // Details
+                ctx.fillStyle = 'white';
+                ctx.fillRect(this.x + 25, this.y + 10, 8, 8); // eye
+                ctx.fillRect(this.x, this.y + 15, this.w, 5); // stripe
+            },
+
+            update: function () {
+                this.dy += 0.7; // gravity
+                this.y += this.dy;
+
+                // Ground collision
+                if (this.y + this.h > height - 100) {
+                    this.y = height - 100 - this.h;
+                    this.dy = 0;
+                    this.grounded = true;
+                    this.doubleJump = true;
+                } else {
+                    this.grounded = false;
+                }
+            },
+
+            jump: function () {
+                if (this.grounded) {
+                    this.dy = -this.jumpForce;
+                    this.grounded = false;
+                    createParticles(this.x + this.w / 2, this.y + this.h, 5, '#fa5252');
+                    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                } else if (this.doubleJump) {
+                    this.dy = -this.jumpForce * 0.8;
+                    this.doubleJump = false;
+                    createParticles(this.x + this.w / 2, this.y + this.h, 8, '#fff');
+                    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                }
+            }
+        };
+
+        const obstacles = {
+            items: [],
+            frameCounter: 0,
+
+            draw: function () {
+                ctx.fillStyle = '#868e96';
+                for (let ob of this.items) {
+                    ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
+
+                    // Tech details
+                    ctx.fillStyle = '#495057';
+                    ctx.fillRect(ob.x + 5, ob.y + 5, ob.w - 10, ob.h - 10);
+                    ctx.fillStyle = '#ced4da';
+                    ctx.fillRect(ob.x + 10, ob.y + 10, 5, 5);
+                    ctx.fillStyle = '#868e96';
+                }
+            },
+
+            update: function () {
+                this.frameCounter++;
+                // Biraz daha sık gelmesi için 1000 yerine 800
+                let interval = Math.floor(800 / (gameSpeed * 1.5));
+
+                if (this.frameCounter >= interval) {
+                    this.frameCounter = 0;
+
+                    // Bazı engeller çift zıplama gerektirecek kadar yüksek
+                    let isTall = Math.random() < 0.2; // %20 ihtimal
+                    let h = isTall ? (Math.random() * 30 + 110) : (Math.random() * 50 + 40);
+
+                    this.items.push({
+                        x: width,
+                        y: height - 100 - h,
+                        w: 30 + Math.random() * 20,
+                        h: h,
+                        passed: false
+                    });
+                }
+
+                for (let i = 0; i < this.items.length; i++) {
+                    let ob = this.items[i];
+                    ob.x -= gameSpeed;
+
+                    // Collision
+                    if (
+                        player.x < ob.x + ob.w &&
+                        player.x + player.w > ob.x &&
+                        player.y < ob.y + ob.h &&
+                        player.y + player.h > ob.y
+                    ) {
+                        gameOver();
+                    }
+
+                    if (ob.x + ob.w < player.x && !ob.passed) {
+                        score += 10;
+                        document.getElementById('score').textContent = score;
+                        ob.passed = true;
+
+                        // Her 30 puanda bir hızlanma
+                        if (score % 30 === 0 && gameSpeed < 25) {
+                            gameSpeed += 0.5;
+                        }
+                    }
+
+                    if (ob.x + ob.w < 0) {
+                        this.items.shift();
+                        i--;
+                    }
+                }
+            },
+
+            reset: function () {
+                this.items = [];
+                this.frameCounter = 0;
+            }
+        };
+
+        const particles = {
+            items: [],
+            add: function (x, y, count, color) {
+                for (let i = 0; i < count; i++) {
+                    this.items.push({
+                        x: x, y: y,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: 30,
+                        color: color
+                    });
+                }
+            },
+            draw: function () {
+                for (let p of this.items) {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life / 30;
+                    ctx.fillRect(p.x, p.y, 4, 4);
+                    ctx.globalAlpha = 1;
+                }
+            },
+            update: function () {
+                for (let i = 0; i < this.items.length; i++) {
+                    let p = this.items[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+                    if (p.life <= 0) {
+                        this.items.splice(i, 1);
+                        i--;
+                    }
+                }
+            },
+            reset: function () {
+                this.items = [];
+            }
+        };
+
+        function createParticles(x, y, count, color) {
+            particles.add(x, y, count, color);
+        }
+
+        function draw() {
+            // Bg
+            ctx.fillStyle = document.body.classList.contains('light-theme') ? '#f8f9fa' : '#101113';
+            ctx.fillRect(0, 0, width, height);
+
+            // Floor
+            ctx.fillStyle = '#343a40';
+            ctx.fillRect(0, height - 100, width, 100);
+
+            // Grid Effect
+            ctx.strokeStyle = 'rgba(120,120,120,0.1)';
+            ctx.beginPath();
+            for (let i = 0; i < width; i += 60) {
+                let x = (i - frames * gameSpeed * 0.5) % width;
+                if (x < 0) x += width;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height - 100);
+            }
+            ctx.stroke();
+
+            obstacles.draw();
+            player.draw();
+            particles.draw();
+        }
+
+        function update() {
+            if (gameState === 'playing') {
+                player.update();
+                obstacles.update();
+                particles.update();
+                draw();
+                frames++;
+                gameLoop = requestAnimationFrame(update);
+            } else {
+                draw();
+            }
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            document.getElementById('start-screen').style.display = 'none';
+            update();
+        }
+
+        function gameOver() {
+            gameState = 'over';
+            cancelAnimationFrame(gameLoop);
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('runner_best', highScore);
+                document.getElementById('best').textContent = highScore;
+            }
+
+            saveScore(score);
+
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-best').textContent = highScore;
+            document.getElementById('game-over').classList.add('show');
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        }
+
+        function resetGame() {
+            document.getElementById('game-over').classList.remove('show');
+            player.y = 0;
+            player.dy = 0;
+            obstacles.reset();
+            particles.reset();
+            score = 0;
+            frames = 0;
+            gameSpeed = 8;
+            document.getElementById('score').textContent = '0';
+            startGame();
+        }
+
+        // Input
+        function input() {
+            if (gameState === 'start') startGame();
+            else if (gameState === 'playing') player.jump();
+        }
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.tagName !== 'BUTTON') input();
+        });
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); input(); }, { passive: false });
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                input();
+            }
+        });
+
+        // Init
+        draw();
+    </script>
+</body>
+
+</html>
