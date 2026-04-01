@@ -1,5 +1,12 @@
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import os
+from threading import Event, Thread
+
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler, filters
 
 import database as db
 import state
@@ -10,7 +17,15 @@ from core.loader import load_handlers
 
 # Handler'ları içe aktar (Sadece handle_buttons_logic içinde kullanılanlar)
 from handlers import admin, general
-from keep_alive import keep_alive
+from keep_alive import (
+    clear_bot_runtime,
+    keep_alive,
+    mark_bot_failed,
+    mark_bot_ready,
+    mark_bot_starting,
+    register_bot_runtime,
+    run_http_server,
+)
 
 # --- LOGLAMA YAPILANDIRMASI ---
 from logger import get_logger, setup_logging
@@ -19,6 +34,7 @@ from texts import BUTTON_MAPPINGS, TEXTS
 
 setup_logging()
 logger = get_logger(__name__)
+WEBHOOK_PATH = "/telegram-webhook"
 
 
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -129,7 +145,7 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("⚠️ Bir hata oluştu. Lütfen daha sonra tekrar deneyin.")
 
 
-async def on_startup(application):
+async def on_startup(application: Application) -> None:
     logger.info("Bot başlatılıyor... Bekleyen hatırlatıcılar kontrol ediliyor.")
     from services.cache_service import init_redis
 
@@ -139,53 +155,138 @@ async def on_startup(application):
     from handlers import reminders
 
     await reminders.start_pending_reminders(application)
+    mark_bot_ready()
 
 
-async def on_shutdown(application):
+async def on_shutdown(application: Application) -> None:
     logger.info("Bot kapatılıyor... HTTP session temizleniyor.")
     from handlers import metro
 
     await metro.close_http_session()
+    clear_bot_runtime()
 
 
-def main():
-    import os
+def build_application() -> Application:
+    application = ApplicationBuilder().token(BOT_TOKEN).post_init(on_startup).post_shutdown(on_shutdown).build()
 
-    # Webhook configuration - Render provides RENDER_EXTERNAL_URL automatically
-    WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL", "")
-    PORT = int(os.getenv("PORT", 8080))
+    load_handlers(application)
 
-    # Build telegram application
-    app = ApplicationBuilder().token(BOT_TOKEN).post_init(on_startup).post_shutdown(on_shutdown).build()
-
-    # --- AUTOMATIC HANDLER LOADING ---
-    load_handlers(app)
-
-    # Register Global Message Handler (Fallback for buttons/text)
-    # This must be added AFTER module handlers to avoid overriding commands?
-    # Actually, CommandHandlers are usually checked first if added first.
-    # load_handlers adds commands.
-    # We should add MessageHandler LAST.
-
-    app.add_handler(
+    application.add_handler(
         MessageHandler(filters.TEXT & (~filters.COMMAND) | filters.Document.ALL | filters.PHOTO, handle_buttons)
     )
-    app.add_handler(MessageHandler(filters.COMMAND, unknown_command))
+    application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
+    return application
 
-    # --- PRODUCTION MODE (Render) ---
-    # Using polling + Flask health check for reliability on free tier
-    # Flask runs on PORT for UptimeRobot, bot uses polling for Telegram
-    if WEBHOOK_URL:
-        logger.info("🚀 PRODUCTION MODE - Polling + Health Check")
-        logger.info(f"🌐 Health check on port {PORT}")
-        keep_alive()  # Flask server for UptimeRobot
-        app.run_polling(drop_pending_updates=True)
 
-    # --- POLLING MODE (Local development) ---
-    else:
-        logger.info("📡 POLLING MODE (No RENDER_EXTERNAL_URL found)")
-        keep_alive()
-        app.run_polling()
+def build_webhook_secret() -> str:
+    return hashlib.sha256(BOT_TOKEN.encode("utf-8")).hexdigest()
+
+
+class WebhookRuntime:
+    def __init__(self, application: Application, webhook_url: str, secret_token: str) -> None:
+        self._application = application
+        self._webhook_url = webhook_url
+        self._secret_token = secret_token
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._thread: Thread | None = None
+        self._ready_event = Event()
+        self._startup_error: Exception | None = None
+        self._started = False
+
+    def start(self) -> None:
+        mark_bot_starting(mode="webhook", webhook_path=WEBHOOK_PATH, webhook_url=self._webhook_url)
+        self._thread = Thread(target=self._run, name="telegram-webhook-runtime", daemon=True)
+        self._thread.start()
+        self._ready_event.wait(timeout=30)
+
+        if self._startup_error:
+            raise RuntimeError("Webhook runtime failed to start.") from self._startup_error
+
+        if not self._started:
+            raise RuntimeError("Webhook runtime startup timed out.")
+
+    def stop(self) -> None:
+        if not self._loop or not self._thread:
+            return
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join(timeout=10)
+
+    def _run(self) -> None:
+        loop = asyncio.new_event_loop()
+        self._loop = loop
+        asyncio.set_event_loop(loop)
+
+        try:
+            loop.run_until_complete(self._async_start())
+            self._started = True
+            self._ready_event.set()
+            loop.run_forever()
+        except Exception as e:
+            self._startup_error = e
+            mark_bot_failed(str(e))
+            self._ready_event.set()
+        finally:
+            if self._started:
+                loop.run_until_complete(self._async_stop())
+            loop.close()
+
+    async def _async_start(self) -> None:
+        await self._application.initialize()
+        if not self._loop:
+            raise RuntimeError("Webhook loop was not initialized.")
+
+        register_bot_runtime(
+            application=self._application,
+            loop=self._loop,
+            secret_token=self._secret_token,
+        )
+
+        if self._application.post_init:
+            await self._application.post_init(self._application)
+
+        await self._application.start()
+        await self._application.bot.set_webhook(url=self._webhook_url, secret_token=self._secret_token)
+        logger.info(f"✅ Webhook registered: {self._webhook_url}")
+
+    async def _async_stop(self) -> None:
+        try:
+            await self._application.bot.delete_webhook()
+        except Exception as e:
+            logger.warning(f"Webhook cleanup failed: {e}")
+
+        if self._application.running:
+            await self._application.stop()
+
+            if self._application.post_stop:
+                await self._application.post_stop(self._application)
+
+        await self._application.shutdown()
+
+        if self._application.post_shutdown:
+            await self._application.post_shutdown(self._application)
+
+
+def main() -> None:
+    render_external_url = os.getenv("RENDER_EXTERNAL_URL", "").rstrip("/")
+    application = build_application()
+
+    if render_external_url:
+        webhook_url = f"{render_external_url}{WEBHOOK_PATH}"
+        runtime = WebhookRuntime(application, webhook_url, build_webhook_secret())
+        logger.info("🚀 PRODUCTION MODE - Webhook + Flask")
+        logger.info(f"🌐 Telegram webhook target: {webhook_url}")
+        runtime.start()
+
+        try:
+            run_http_server()
+        finally:
+            runtime.stop()
+        return
+
+    logger.info("📡 POLLING MODE (No RENDER_EXTERNAL_URL found)")
+    mark_bot_starting(mode="polling")
+    keep_alive()
+    application.run_polling()
 
 
 if __name__ == "__main__":

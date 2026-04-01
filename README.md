@@ -95,6 +95,8 @@ enabled for the repository. Do not post vulnerabilities in public issues.
 
 - `render.yaml` installs runtime dependencies only.
 - `Dockerfile` uses the same runtime dependency set.
+- On Render web services, the bot now switches to webhook mode automatically when `RENDER_EXTERNAL_URL` is present.
+- The Flask server exposes `/healthz` and returns `503` until the Telegram runtime is actually ready.
 - If `WEB_APP_BASE_URL` is unset, web game URLs fall back to `RENDER_EXTERNAL_URL`, then local `http://127.0.0.1:8080`.
 
 ## Public Release Notes

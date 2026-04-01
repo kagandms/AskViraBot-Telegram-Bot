@@ -1,12 +1,18 @@
+from __future__ import annotations
+
+import asyncio
 import hashlib
 import hmac
 import json
 import logging
 import os
-from threading import Thread
+from dataclasses import asdict, dataclass
+from threading import Lock, Thread
+from typing import Any
 from urllib.parse import unquote
 
 from flask import Flask, jsonify, request, send_from_directory
+from telegram import Update
 
 from config import ALLOW_LOCAL_WEBAPP_BYPASS, BOT_TOKEN
 from services.game_service import get_web_game_high_score, save_web_game_score
@@ -17,10 +23,83 @@ logger = logging.getLogger(__name__)
 ALLOWED_GAME_TYPES = {"snake", "2048", "flappy", "runner", "sudoku", "xox"}
 
 
+@dataclass(slots=True)
+class BotRuntimeStatus:
+    ready: bool = False
+    mode: str = "not-started"
+    webhook_path: str | None = None
+    webhook_url: str | None = None
+    last_error: str | None = None
+
+
+@dataclass(slots=True)
+class BotRuntimeContext:
+    application: Any | None = None
+    loop: asyncio.AbstractEventLoop | None = None
+    secret_token: str | None = None
+
+
+_bot_status = BotRuntimeStatus()
+_bot_runtime = BotRuntimeContext()
+_bot_runtime_lock = Lock()
+
+
+def mark_bot_starting(*, mode: str, webhook_path: str | None = None, webhook_url: str | None = None) -> None:
+    with _bot_runtime_lock:
+        _bot_status.ready = False
+        _bot_status.mode = mode
+        _bot_status.webhook_path = webhook_path
+        _bot_status.webhook_url = webhook_url
+        _bot_status.last_error = None
+
+
+def mark_bot_ready() -> None:
+    with _bot_runtime_lock:
+        _bot_status.ready = True
+        _bot_status.last_error = None
+
+
+def mark_bot_failed(error_message: str) -> None:
+    with _bot_runtime_lock:
+        _bot_status.ready = False
+        _bot_status.last_error = error_message
+
+
+def register_bot_runtime(
+    *,
+    application: Any,
+    loop: asyncio.AbstractEventLoop,
+    secret_token: str | None = None,
+) -> None:
+    with _bot_runtime_lock:
+        _bot_runtime.application = application
+        _bot_runtime.loop = loop
+        _bot_runtime.secret_token = secret_token
+
+
+def clear_bot_runtime() -> None:
+    with _bot_runtime_lock:
+        _bot_runtime.application = None
+        _bot_runtime.loop = None
+        _bot_runtime.secret_token = None
+        _bot_status.ready = False
+
+
+def get_bot_status() -> dict[str, object]:
+    with _bot_runtime_lock:
+        return asdict(_bot_status)
+
+
 @app.route("/")
 def home():
-    # Keep-alive check - Simple response to satisfy Render health check
-    return "ViraBot Web App Server is Running! 🚀"
+    status = get_bot_status()
+    status_code = 200 if status["ready"] else 503
+    return jsonify(status), status_code
+
+
+@app.route("/healthz")
+def healthz():
+    return home()
 
 
 # --- STATIC FILE SERVING ---
@@ -30,7 +109,7 @@ def serve_web_files(path):
 
 
 # --- API HELPER: VALIDATE TELEGRAM WEBAPP DATA ---
-def validate_telegram_data(init_data):
+def validate_telegram_data(init_data: str | None) -> dict[str, Any] | None:
     """
     Validates the data received from the Telegram Web App.
     Returns the user data if valid, None otherwise.
@@ -68,6 +147,39 @@ def validate_telegram_data(init_data):
 @app.route("/api/test", methods=["GET"])
 def test_api():
     return jsonify({"status": "ok", "message": "API is reachable"})
+
+
+@app.route("/telegram-webhook", methods=["POST"])
+def telegram_webhook():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid update payload"}), 400
+
+    with _bot_runtime_lock:
+        application = _bot_runtime.application
+        loop = _bot_runtime.loop
+        secret_token = _bot_runtime.secret_token
+
+    if not application or not loop:
+        return jsonify({"error": "Bot runtime unavailable"}), 503
+
+    if secret_token:
+        header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+        if header_token != secret_token:
+            return jsonify({"error": "Forbidden"}), 403
+
+    update = Update.de_json(payload, application.bot)
+    if update is None:
+        return jsonify({"error": "Invalid update payload"}), 400
+
+    try:
+        future = asyncio.run_coroutine_threadsafe(application.update_queue.put(update), loop)
+        future.result(timeout=5)
+    except Exception as e:
+        logger.error(f"Webhook update enqueue failed: {e}", exc_info=True)
+        return jsonify({"error": "Unable to enqueue update"}), 500
+
+    return jsonify({"ok": True})
 
 
 @app.route("/api/save_score", methods=["POST"])
@@ -118,12 +230,12 @@ def save_score():
         return jsonify({"error": "Internal server error"}), 500
 
 
-def run_flask():
+def run_http_server() -> None:
     port = int(os.environ.get("PORT", 8080))
-    # Threaded=True for better handling in dev
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, use_reloader=False)
 
 
-def keep_alive():
-    t = Thread(target=run_flask)
+def keep_alive() -> Thread:
+    t = Thread(target=run_http_server, name="keep-alive-server", daemon=True)
     t.start()
+    return t
