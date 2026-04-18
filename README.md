@@ -93,7 +93,8 @@ enabled for the repository. Do not post vulnerabilities in public issues.
 
 ## Deployment Notes
 
-- `render.yaml` installs runtime dependencies only.
+- `render.yaml` uses the native Python runtime build command `pip install -r requirements.txt`.
+- Render native runtimes already include `ffmpeg`, so the web service build command should not run `apt-get` to install it.
 - `Dockerfile` uses the same runtime dependency set.
 - On Render web services, the bot now switches to webhook mode automatically when `RENDER_EXTERNAL_URL` is present.
 - The Flask server exposes `/healthz` and returns `503` until the Telegram runtime is actually ready.
