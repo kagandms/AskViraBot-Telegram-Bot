@@ -93,6 +93,7 @@ enabled for the repository. Do not post vulnerabilities in public issues.
 
 ## Deployment Notes
 
+- Render native Python should be pinned to `3.13.9` for this project. The current default `3.14.x` native runtime breaks `shazamio-core` during metadata generation.
 - `render.yaml` uses the native Python runtime build command `pip install -r requirements.txt`.
 - Render native runtimes already include `ffmpeg`, so the web service build command should not run `apt-get` to install it.
 - `Dockerfile` uses the same runtime dependency set.

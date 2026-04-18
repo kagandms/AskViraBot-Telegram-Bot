@@ -6,6 +6,8 @@ services:
     startCommand: python main.py
     healthCheckPath: /healthz
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.9
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: SUPABASE_URL
