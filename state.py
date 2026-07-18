@@ -29,45 +29,78 @@ METRO_SELECTION = "metro_selection"  # Data: selection dict
 ADMIN_MENU_ACTIVE = "admin_menu_active"
 AI_MENU_ACTIVE = "ai_menu_active"
 
+# --- LOCAL CACHE ---
+_local_states: dict[str, dict] = {}
+
 # --- ASYNC HELPERS ---
 
 
 async def set_state(user_id: int | str, state_name: str, data: dict | None = None) -> None:
     """Tek bir durum belirler. (Eskiden set.add() yapılıyordu)."""
+    uid = str(user_id)
+    _local_states[uid] = {"state_name": state_name, "state_data": data or {}}
     # Veritabanı çağrısı senkron olduğu için thread içinde çalıştırıyoruz
     await asyncio.to_thread(db.set_user_state, user_id, state_name, data)
 
 
 async def check_state(user_id: int | str, state_name: str) -> bool:
     """Kullanıcının belirtilen durumda olup olmadığını kontrol eder."""
+    uid = str(user_id)
+    if uid in _local_states:
+        return _local_states[uid].get("state_name") == state_name
+
     current_state = await asyncio.to_thread(db.get_user_state, user_id)
-    return bool(current_state and current_state.get("state_name") == state_name)
+    if current_state:
+        _local_states[uid] = current_state
+        return current_state.get("state_name") == state_name
+    return False
 
 
 async def get_state(user_id: int | str) -> str | None:
     """Kullanıcının aktif durum adını döndürür. Yoksa None."""
+    uid = str(user_id)
+    if uid in _local_states:
+        return _local_states[uid].get("state_name")
+
     s = await asyncio.to_thread(db.get_user_state, user_id)
-    return s.get("state_name") if s else None
+    if s:
+        _local_states[uid] = s
+        return s.get("state_name")
+    return None
 
 
 async def get_data(user_id: int | str) -> dict:
     """Kullanıcının o anki durumuna ait veriyi (JSON) döndürür."""
+    uid = str(user_id)
+    if uid in _local_states:
+        return _local_states[uid].get("state_data", {})
+
     s = await asyncio.to_thread(db.get_user_state, user_id)
-    return s.get("state_data", {}) if s else {}
+    if s:
+        _local_states[uid] = s
+        return s.get("state_data", {})
+    return {}
 
 
 async def update_data(user_id: int | str, partial_data: dict) -> None:
     """Aktif state verisini merge eder; state yoksa sessizce çıkar."""
-    current_state = await asyncio.to_thread(db.get_user_state, user_id)
-    if not current_state:
+    uid = str(user_id)
+    current_data = await get_data(user_id)
+    merged = {**current_data, **partial_data}
+
+    state_name = await get_state(user_id)
+    if not state_name:
         return
 
-    merged_data = {**current_state.get("state_data", {}), **partial_data}
-    await asyncio.to_thread(db.set_user_state, user_id, current_state["state_name"], merged_data)
+    _local_states[uid] = {"state_name": state_name, "state_data": merged}
+    await asyncio.to_thread(db.set_user_state, user_id, state_name, merged)
 
 
 async def clear_user_states(user_id: int | str) -> None:
     """Kullanıcının tüm aktif durumlarını temizler (Veritabanından siler)."""
+    uid = str(user_id)
+    if uid in _local_states:
+        del _local_states[uid]
     await asyncio.to_thread(db.clear_user_state, user_id)
 
 
