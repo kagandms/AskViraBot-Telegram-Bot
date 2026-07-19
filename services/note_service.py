@@ -21,7 +21,7 @@ def add_user_note(user_id: int | str, note_content: str) -> bool:
     if not supabase:
         return False
     try:
-        data = {"user_id": str(user_id), "content": note_content, "title": None}
+        data = {"user_id": str(user_id), "content": note_content}
         supabase.table("notes").insert(data).execute()
         return True
     except Exception as e:

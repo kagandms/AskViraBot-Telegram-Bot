@@ -245,13 +245,19 @@ Access all features easily through the menu buttons!
 
 async def show_language_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Dil seçim klavyesini gösterir"""
-    text = "🇹🇷 Lütfen bir dil seçin\n🇬🇧 Please select a language\n🇷🇺 Пожалуйста, выберите язык"
+    user_id = update.effective_user.id
+    lang = await db.get_user_lang(user_id)
+    text = {
+        "tr": "🇹🇷 Lütfen bir dil seçin",
+        "en": "🇬🇧 Please select a language",
+        "ru": "🇷🇺 Пожалуйста, выберите язык",
+    }.get(lang, "🇬🇧 Please select a language")
 
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.message.edit_text(text, reply_markup=kb.get_language_keyboard())
+        await update.callback_query.message.edit_text(text, reply_markup=kb.get_language_keyboard(lang))
     else:
-        await update.message.reply_text(text, reply_markup=kb.get_language_keyboard())
+        await update.message.reply_text(text, reply_markup=kb.get_language_keyboard(lang))
 
 
 async def handle_language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

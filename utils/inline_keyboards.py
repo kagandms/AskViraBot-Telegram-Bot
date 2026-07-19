@@ -11,7 +11,7 @@ def get_main_keyboard(lang: str) -> InlineKeyboardMarkup:
 
     t_games = {"tr": "🎮 Oyun Odası", "en": "🎮 Game Room", "ru": "🎮 Игровая Комната"}.get(lang, "🎮 Game Room")
 
-    t_lang = {"tr": "🌐 Dil (Language)", "en": "🌐 Language", "ru": "🌐 Язык"}.get(lang, "🌐 Language")
+    t_lang = {"tr": "🌐 Dil", "en": "🌐 Language", "ru": "🌐 Язык"}.get(lang, "🌐 Language")
 
     t_dev = {"tr": "👨‍💻 Geliştirici", "en": "👨‍💻 Developer", "ru": "👨‍💻 Разработчик"}.get(lang, "👨‍💻 Developer")
 
@@ -168,13 +168,14 @@ def get_games_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 
-def get_language_keyboard() -> InlineKeyboardMarkup:
+def get_language_keyboard(lang: str) -> InlineKeyboardMarkup:
     """Returns language selection keyboard."""
+    back_text = {"tr": "🔙 Geri", "en": "🔙 Back", "ru": "🔙 Назад"}.get(lang, "🔙 Back")
     keyboard = [
         [InlineKeyboardButton("🇹🇷 Türkçe", callback_data=callbacks.LANG_TR)],
         [InlineKeyboardButton("🇬🇧 English", callback_data=callbacks.LANG_EN)],
         [InlineKeyboardButton("🇷🇺 Русский", callback_data=callbacks.LANG_RU)],
-        [InlineKeyboardButton("🔙 Back / Geri", callback_data=callbacks.MENU_MAIN)],
+        [InlineKeyboardButton(back_text, callback_data=callbacks.MENU_MAIN)],
     ]
     return InlineKeyboardMarkup(keyboard)
 

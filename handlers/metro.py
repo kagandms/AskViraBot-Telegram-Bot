@@ -117,14 +117,14 @@ async def metro_menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     markup = InlineKeyboardMarkup(keyboard)
 
     if update.callback_query:
-        await update.callback_query.message.edit_text(text, reply_markup=markup)
+        await update.callback_query.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
     else:
         try:
             if update.message:
                 await update.message.delete()
         except:
             pass
-        await update.message.reply_text(text, reply_markup=markup)
+        await update.message.reply_text(text, reply_markup=markup, parse_mode="HTML")
 
 
 async def show_stations(update: Update, context: ContextTypes.DEFAULT_TYPE, line_id: str):
